@@ -20,18 +20,38 @@ class ConsoleFactory
         $registry->run($command, $args);
     }
 
-    private static function discover(CommandRegistry $registry, string $namespace): void
+    private static function discover(CommandRegistry $registry, string $baseNamespace): void
     {
-        $commandDir = PACHYDERM_USER_PROJECT_ROOT. "src/Commands";
-        foreach (glob($commandDir . '/*.php') as $file) {
-            require_once $file;
+        $commandDir = PACHYDERM_USER_PROJECT_ROOT . "src/Commands";
 
-            $className = pathinfo($file, PATHINFO_FILENAME);
-            $fqcn = $namespace ? $namespace . "\\" . $className : $className;
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($commandDir)
+        );
+
+        foreach ($iterator as $file) {
+            if ($file->isDir()) {
+                continue;
+            }
+
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+
+            require_once $file->getRealPath();
+
+            $relativePath = str_replace($commandDir, '', $file->getPath());
+            $relativePath = trim($relativePath, DIRECTORY_SEPARATOR);
+
+            $subNamespace = $relativePath
+                ? $baseNamespace . "\\" . str_replace('/', '\\', $relativePath)
+                : $baseNamespace;
+
+            $className = pathinfo($file->getFilename(), PATHINFO_FILENAME);
+            $fqcn = $subNamespace . "\\" . $className;
 
             if (class_exists($fqcn)) {
-                $instance = new $fqcn();
-                if ($instance instanceof CommandInterface) {
+                if (is_subclass_of($fqcn, CommandInterface::class)) {
+                    $instance = new $fqcn();
                     $registry->register($instance);
                 }
             }

@@ -2,7 +2,7 @@
     "name": "aliengen/pachyderm-console",
     "description": "A command tool for Pachyderm",
     "type": "library",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "require": {
         "php": ">=8.4",
         "aliengen/pachyderm": "dev-master"
